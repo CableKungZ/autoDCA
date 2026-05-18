@@ -25,15 +25,31 @@ async def send_message(text: str, chat_id: str | None = None) -> None:
 
 
 async def notify_order_success(order_data: dict) -> None:
+    currency = order_data.get('currency', 'USDT')
+    quote = float(order_data['quote_amount'])
+    rate = float(order_data.get('thb_usd_rate') or 0)
+    base_token = order_data['symbol'].split('/')[0]
+    price = float(order_data.get('price') or 0)
+
+    # Cross-currency display: always show both THB and USDT
+    if currency == 'THB':
+        spent_str = f"{quote:,.2f} THB"
+        spent_str += f" (≈ {quote/rate:,.2f} USDT)" if rate else ""
+        price_str = f"{price:,.2f} THB"
+    else:
+        spent_str = f"{quote:,.2f} USDT"
+        spent_str += f" (≈ {quote*rate:,.2f} THB)" if rate else ""
+        price_str = f"{price:,.4f} USDT (≈ {price*rate:,.2f} THB)" if rate else f"{price:,.4f} USDT"
+
     text = (
         f"✅ <b>DCA Order Filled</b>\n"
         f"Exchange: {order_data['exchange'].upper()}\n"
         f"Pair: {order_data['symbol']}\n"
-        f"Spent: {order_data['quote_amount']} {order_data['currency']}\n"
-        f"Received: {order_data['base_amount']:.8f} {order_data['symbol'].split('/')[0]}\n"
-        f"Price: {order_data['price']:,.2f}\n"
-        f"Cost/Token: {order_data['cost_per_token']:,.2f}\n"
-        f"THB/USDT Rate: {order_data.get('thb_usd_rate', 'N/A')}"
+        f"Spent: {spent_str}\n"
+        f"Received: {float(order_data['base_amount']):.8f} {base_token}\n"
+        f"Price: {price_str}\n"
+        f"Cost/Token: {float(order_data.get('cost_per_token') or 0):,.4f} {currency}\n"
+        f"THB/USDT Rate: {rate:,.2f}"
     )
     await send_message(text)
 
@@ -56,13 +72,40 @@ async def build_summary_text(plans_stats: list[dict], label: str = "All Plans") 
         return "No active plans found."
     lines = [f"📊 <b>DCA Summary — {label}</b>\n"]
     for s in plans_stats:
-        pnl_emoji = "📈" if s.get("unrealized_pnl", 0) >= 0 else "📉"
+        pnl = s.get("unrealized_pnl", 0)
+        pnl_thb = s.get("unrealized_pnl_thb", 0)
+        pnl_emoji = "📈" if pnl >= 0 else "📉"
+        currency = s.get("currency", "USDT")
+        rate = s.get("thb_rate", 0)
+
+        # Avg cost with cross-currency
+        avg = s.get("avg_cost", 0)
+        avg_thb = s.get("avg_cost_thb", 0)
+        if currency == "THB":
+            avg_str = f"{avg:,.2f} THB (≈ {avg/rate:,.4f} USDT)" if rate else f"{avg:,.2f} THB"
+        else:
+            avg_str = f"{avg:,.4f} USDT (≈ {avg_thb:,.2f} THB)"
+
+        # Invested with cross-currency
+        invested = s.get("total_invested", 0)
+        invested_thb = s.get("total_invested_thb", 0)
+        if currency == "THB":
+            inv_str = f"{invested:,.2f} THB (≈ {invested/rate:,.2f} USDT)" if rate else f"{invested:,.2f} THB"
+        else:
+            inv_str = f"{invested:,.2f} USDT (≈ {invested_thb:,.2f} THB)"
+
+        # PnL with cross-currency
+        if currency == "THB":
+            pnl_str = f"{pnl:+,.2f} THB"
+        else:
+            pnl_str = f"{pnl:+,.4f} USDT (≈ {pnl_thb:+,.2f} THB)"
+
         lines.append(
             f"<b>{s['name']}</b> ({s['exchange'].upper()} | {s['symbol']})\n"
-            f"  Avg Cost: {s['avg_cost']:,.4f}\n"
-            f"  Total Invested: {s['total_invested']:,.2f} {s['currency']}\n"
-            f"  Holdings: {s['total_coins']:.8f}\n"
-            f"  {pnl_emoji} Unrealized PnL: {s['unrealized_pnl']:+,.2f} ({s['unrealized_pnl_pct']:+.2f}%)\n"
+            f"  Avg Cost: {avg_str}\n"
+            f"  Invested: {inv_str}\n"
+            f"  Holdings: {s.get('total_coins', 0):.8f} {s['symbol'].split('/')[0]}\n"
+            f"  {pnl_emoji} PnL: {pnl_str} ({s.get('unrealized_pnl_pct', 0):+.2f}%)\n"
         )
     return "\n".join(lines)
 
