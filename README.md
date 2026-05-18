@@ -2,7 +2,9 @@
 
 # 🤖 AutoDCA
 
-**ระบบ Dollar Cost Averaging อัตโนมัติสำหรับ Binance และ Bitkub**
+**Automated Dollar Cost Averaging bot for Binance and Bitkub**
+
+[![🇹🇭 ภาษาไทย](https://img.shields.io/badge/🇹🇭-ภาษาไทย-blue?style=flat-square)](./README.th.md)
 
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
@@ -11,7 +13,7 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql&logoColor=white)
 
-*รัน local 100% · ไม่พึ่งพา cloud · `docker compose up -d` แล้วใช้ได้เลย*
+*100% self-hosted · No cloud dependency · Just `docker compose up -d`*
 
 </div>
 
@@ -21,22 +23,14 @@
 
 | Feature | Detail |
 |---|---|
-| 🏦 **Multi-Exchange** | Binance (USDT) และ Bitkub (THB) |
-| ⏰ **Flexible Schedule** | ทุกวัน / รายสัปดาห์ / รายเดือน / ทุก N ชั่วโมง |
-| 📈 **Buy & Sell** | Market, Limit, Percent ของ Holdings |
+| 🏦 **Multi-Exchange** | Binance (USDT pairs) and Bitkub (THB pairs) |
+| ⏰ **Flexible Schedule** | Daily / Weekly / Monthly / Every N hours |
+| 📈 **Buy & Sell** | Market, Limit, Percent of Holdings |
 | 📊 **Live Stats** | Avg Cost, Unrealized PnL, Holdings per plan |
-| 🔄 **THB/USDT Toggle** | แปลงค่าข้ามสกุลเงินอัตโนมัติ |
-| 🔔 **Telegram Alerts** | แจ้งเตือนทุกคำสั่งซื้อ/ขาย |
-| 🔒 **Secure** | API keys เข้ารหัสด้วย Fernet ก่อนเก็บ |
+| 🔄 **THB/USDT Toggle** | Automatic cross-currency conversion |
+| 🔔 **Telegram Alerts** | Notifications for every buy/sell order |
+| 🔒 **Secure** | API keys encrypted with Fernet before storage |
 | 🌐 **Web UI** | Dashboard, Plans, Orders, Settings |
-
----
-
-## 🖥️ Screenshots
-
-| Dashboard | Plans | Orders |
-|---|---|---|
-| สรุป PnL + กราฟ THB/USDT | จัดการ DCA Plans | ประวัติคำสั่งซื้อ/ขาย |
 
 ---
 
@@ -45,7 +39,7 @@
 ### Prerequisites
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- Exchange API Keys (Binance และ/หรือ Bitkub)
+- Exchange API Keys (Binance and/or Bitkub)
 
 ### 1. Clone
 
@@ -54,17 +48,17 @@ git clone https://github.com/CableKungZ/autoDCA.git
 cd autoDCA
 ```
 
-### 2. ตั้งค่า Environment
+### 2. Configure Environment
 
 ```bash
 cp .env.example .env
 ```
 
-เปิด `.env` แล้วแก้ไข:
+Edit `.env`:
 
 ```env
 POSTGRES_PASSWORD=your_strong_password
-FERNET_KEY=                   # ← ดูวิธีสร้างด้านล่าง
+FERNET_KEY=                   # ← see how to generate below
 BINANCE_API_KEY=
 BINANCE_API_SECRET=
 BITKUB_API_KEY=
@@ -73,20 +67,20 @@ TELEGRAM_BOT_TOKEN=           # optional
 TELEGRAM_CHAT_ID=             # optional
 ```
 
-**สร้าง Fernet Key:**
+**Generate Fernet Key:**
 ```bash
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-### 3. รัน 🎉
+### 3. Run 🎉
 
 ```bash
 docker compose up -d
 ```
 
-> ครั้งแรกใช้เวลา build ~2-5 นาที
+> First build takes ~2-5 minutes
 
-### 4. เปิดใช้งาน
+### 4. Open
 
 | Service | URL |
 |---|---|
@@ -95,66 +89,66 @@ docker compose up -d
 
 ---
 
-## ⚙️ ตั้งค่า Exchange API Keys
+## ⚙️ Exchange API Keys Setup
 
 <details>
 <summary><b>🟡 Binance</b></summary>
 
-1. ไปที่ [Binance API Management](https://www.binance.com/en/my/settings/api-management)
-2. สร้าง API Key ใหม่
-3. เปิดสิทธิ์ **Enable Spot & Margin Trading**
-4. Whitelist IP ของ server → ดู IP ได้ที่ **Settings → Server Public IP**
+1. Go to [Binance API Management](https://www.binance.com/en/my/settings/api-management)
+2. Create a new API Key
+3. Enable **Spot & Margin Trading** permission
+4. Whitelist your server IP → find it at **Settings → Server Public IP**
 
 </details>
 
 <details>
 <summary><b>🟢 Bitkub</b></summary>
 
-1. ไปที่ [Bitkub API](https://www.bitkub.com/settings/api)
-2. สร้าง API Key ใหม่
-3. เปิดสิทธิ์ **Trading**
-4. Whitelist IP ของ server → ดู IP ได้ที่ **Settings → Server Public IP**
+1. Go to [Bitkub API](https://www.bitkub.com/settings/api)
+2. Create a new API Key
+3. Enable **Trading** permission
+4. Whitelist your server IP → find it at **Settings → Server Public IP**
 
 </details>
 
 ---
 
-## 📖 การใช้งาน
+## 📖 Usage
 
-### สร้าง DCA Plan
-1. ไปที่ **Plans** → คลิก **+ New Plan**
-2. เลือก Exchange → เลือก Pair → กำหนดจำนวนเงิน
+### Create a DCA Plan
+1. Go to **Plans** → click **+ New Plan**
+2. Select Exchange → Select Pair → Set amount per order
    - Binance ≥ **5 USDT** · Bitkub ≥ **10 THB**
-3. ตั้ง Schedule → กด **Create**
+3. Set Schedule → click **Create**
 
-### ซื้อทันที
-กดปุ่ม **Buy Now** ในหน้า Plans โดยไม่ต้องรอ schedule
+### Buy Now
+Click **Buy Now** on the Plans page to execute immediately without waiting for the schedule.
 
-### ขาย
-กดปุ่ม **Sell** เลือกรูปแบบ:
-- ⚡ **Market** — ขายที่ราคาตลาดทันที
-- 🎯 **Limit** — กำหนดราคาที่ต้องการขาย
-- **%** — **Percent** ขายเป็น % ของ Holdings
+### Sell
+Click **Sell** to open the Sell modal:
+- ⚡ **Market** — Sell at current market price instantly
+- 🎯 **Limit** — Set a target price to sell at
+- **%** **Percent** — Sell a percentage of your holdings
 
 ---
 
 ## 🐳 Docker Commands
 
 ```bash
-# รัน
+# Start
 docker compose up -d
 
-# หยุด
+# Stop
 docker compose down
 
-# ดู logs
+# View logs
 docker compose logs -f api
 docker compose logs -f scheduler
 
-# Rebuild หลังแก้ไข code
+# Rebuild after code changes
 docker compose up -d --build
 
-# ดู status
+# Check status
 docker compose ps
 ```
 
@@ -184,7 +178,7 @@ autoDCA/
 ## 🔧 Troubleshooting
 
 <details>
-<summary><b>API ไม่ตอบสนอง</b></summary>
+<summary><b>API not responding</b></summary>
 
 ```bash
 docker compose logs api --tail=50
@@ -193,31 +187,31 @@ docker compose logs api --tail=50
 </details>
 
 <details>
-<summary><b>Order ค้างอยู่ที่ Pending</b></summary>
+<summary><b>Orders stuck at Pending</b></summary>
 
-ไปที่หน้า **Orders** → กด **Clear Pending**
+Go to **Orders** page → click **Clear Pending**
 
 </details>
 
 <details>
 <summary><b>Binance / Bitkub 401 Unauthorized</b></summary>
 
-- ตรวจสอบ API Key และ Secret ใน `.env`
-- Whitelist IP ของ server (ดู IP ได้ที่ **Settings → Server Public IP**)
-- รัน `docker compose up -d` ใหม่หลังแก้ `.env`
+- Check API Key and Secret in `.env`
+- Whitelist your server IP (find it at **Settings → Server Public IP**)
+- Re-run `docker compose up -d` after editing `.env`
 
 </details>
 
 <details>
-<summary><b>Docker build ล้มเหลว (DNS error)</b></summary>
+<summary><b>Docker build fails (DNS error)</b></summary>
 
-แก้ไฟล์ `~/.docker/daemon.json`:
+Edit `~/.docker/daemon.json`:
 ```json
 {
   "dns": ["8.8.8.8", "1.1.1.1"]
 }
 ```
-แล้ว restart Docker Desktop
+Then restart Docker Desktop.
 
 </details>
 
@@ -245,12 +239,12 @@ docker compose logs api --tail=50
 
 This project is licensed under **CC BY-NC 4.0**
 
-| การกระทำ | อนุญาต |
+| Action | Allowed |
 |---|---|
-| ✅ ใช้งานส่วนตัว | อนุญาต |
-| ✅ ดัดแปลง / แก้ไข | อนุญาต (ต้องระบุ credit) |
-| ✅ แจกจ่าย / เผยแพร่ต่อ | อนุญาต (ต้องระบุ credit) |
-| ❌ นำไปขาย / ใช้เชิงพาณิชย์ | **ห้ามเด็ดขาด** |
+| ✅ Personal use | Yes |
+| ✅ Modify / Adapt | Yes (credit required) |
+| ✅ Redistribute | Yes (credit required) |
+| ❌ Commercial use | **Strictly prohibited** |
 
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
 
