@@ -62,6 +62,15 @@ async def update_plan(plan_id: str, body: PlanUpdate, db: AsyncSession = Depends
         setattr(plan, k, v)
     await db.commit()
     await db.refresh(plan)
+    # Signal scheduler to re-sync jobs immediately
+    try:
+        from app.config import get_settings
+        import redis.asyncio as aioredis
+        r = aioredis.from_url(get_settings().redis_url)
+        await r.publish("scheduler:sync_now", "1")
+        await r.aclose()
+    except Exception:
+        pass
     return plan
 
 
