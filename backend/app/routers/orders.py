@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from app.ws import manager as ws_manager
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from typing import Optional
@@ -136,6 +137,7 @@ async def place_sell_order(body: SellRequest, db: AsyncSession = Depends(get_db)
             order.status = OrderStatus.pending  # limit orders sit open
         await db.commit()
         await db.refresh(order)
+        await ws_manager.broadcast("order_filled", {"plan_id": body.plan_id, "symbol": plan.symbol, "side": "sell"})
         return {"message": "Sell order placed", "order_id": order.id, "status": order.status, "avg_price": raw.get("avg_price"), "base_sold": raw.get("base_sold")}
     except Exception as e:
         order.status = OrderStatus.failed

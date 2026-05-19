@@ -1,8 +1,9 @@
 import structlog
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import plans, orders, stats, rates, logs
+from app.ws import manager
 
 logger = structlog.get_logger()
 
@@ -28,6 +29,16 @@ app.include_router(orders.router)
 app.include_router(stats.router)
 app.include_router(rates.router)
 app.include_router(logs.router)
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(ws: WebSocket):
+    await manager.connect(ws)
+    try:
+        while True:
+            await ws.receive_text()   # keep alive / ping
+    except WebSocketDisconnect:
+        manager.disconnect(ws)
 
 
 @app.get("/health")

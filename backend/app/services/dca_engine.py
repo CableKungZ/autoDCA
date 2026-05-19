@@ -12,6 +12,7 @@ from app.models.order import Order, OrderStatus
 from app.services.exchange import place_market_buy, decrypt_secret
 from app.services.rate_fetcher import fetch_and_store_rate, get_latest_rate
 from app.services.telegram import notify_order_success, notify_order_failed
+from app.ws import manager as ws_manager
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -85,6 +86,7 @@ async def execute_dca_plan(plan_id: str, db: AsyncSession, redis_client: aioredi
                 "cost_per_token": avg_price,
                 "thb_usd_rate": thb_rate,
             })
+            await ws_manager.broadcast("order_filled", {"plan_id": plan_id, "symbol": plan.symbol})
 
         except Exception as e:
             order.retry_count += 1
@@ -98,6 +100,7 @@ async def execute_dca_plan(plan_id: str, db: AsyncSession, redis_client: aioredi
                     order.retry_count,
                     plan.max_retries,
                 )
+                await ws_manager.broadcast("order_failed", {"plan_id": plan_id, "symbol": plan.symbol})
                 logger.error("dca_order_failed_final", plan_id=plan_id, error=str(e))
             else:
                 order.status = OrderStatus.pending
@@ -107,6 +110,7 @@ async def execute_dca_plan(plan_id: str, db: AsyncSession, redis_client: aioredi
                     order.retry_count,
                     plan.max_retries,
                 )
+                await ws_manager.broadcast("order_failed", {"plan_id": plan_id, "symbol": plan.symbol})
                 # Schedule retry in 5 minutes
                 await asyncio.sleep(300)
                 await execute_dca_plan(plan_id, db, redis_client)
