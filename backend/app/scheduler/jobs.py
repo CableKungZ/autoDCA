@@ -40,15 +40,25 @@ async def sync_plan_jobs(scheduler: AsyncIOScheduler) -> None:
 
     for plan in plans:
         job_id = f"dca_{plan.id}"
-        if job_id not in existing_job_ids:
-            parts = plan.schedule_cron.split()
-            trigger = CronTrigger(
-                minute=parts[0],
-                hour=parts[1],
-                day=parts[2],
-                month=parts[3],
-                day_of_week=parts[4],
-            )
+        parts = plan.schedule_cron.split()
+        trigger = CronTrigger(
+            minute=parts[0],
+            hour=parts[1],
+            day=parts[2],
+            month=parts[3],
+            day_of_week=parts[4],
+        )
+
+        existing_job = scheduler.get_job(job_id)
+        if existing_job:
+            # Check if cron changed by comparing trigger fields
+            existing_trigger = existing_job.trigger
+            new_fields = {f.name: str(f) for f in trigger.fields if not f.is_default}
+            old_fields = {f.name: str(f) for f in existing_trigger.fields if not f.is_default}
+            if new_fields != old_fields:
+                scheduler.reschedule_job(job_id, trigger=trigger)
+                logger.info("job_rescheduled", plan_id=plan.id, cron=plan.schedule_cron)
+        else:
             scheduler.add_job(
                 run_dca_job,
                 trigger=trigger,
