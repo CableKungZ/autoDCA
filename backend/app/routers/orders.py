@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from app.ws import manager as ws_manager
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, delete
 from typing import Optional
 from datetime import date
 from pydantic import BaseModel
@@ -150,10 +150,11 @@ async def place_sell_order(body: SellRequest, db: AsyncSession = Depends(get_db)
 async def clear_pending_orders(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Order).where(Order.status == OrderStatus.pending))
     orders = result.scalars().all()
+    count = len(orders)
     for order in orders:
-        order.status = OrderStatus.cancelled
+        await db.delete(order)
     await db.commit()
-    return {"cleared": len(orders)}
+    return {"cleared": count}
 
 
 @router.post("/{order_id}/cancel", response_model=OrderResponse)
@@ -164,7 +165,6 @@ async def cancel_order(order_id: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(404, "Order not found")
     if order.status != OrderStatus.pending:
         raise HTTPException(400, "Only pending orders can be cancelled")
-    order.status = OrderStatus.cancelled
+    await db.delete(order)
     await db.commit()
-    await db.refresh(order)
     return order
