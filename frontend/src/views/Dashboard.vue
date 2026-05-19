@@ -26,7 +26,7 @@
     <!-- Stat cards -->
     <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
       <StatCard title="Total Invested" :value="fmt(totalInvestedThb)" sub="THB" color="indigo" />
-      <StatCard title="Avg DCA Price" :value="fmtAvgCost" :sub="avgCostSub" color="blue" />
+      <StatCard v-if="selectedPlanId" title="Avg DCA Price" :value="fmtAvgCost" :sub="avgCostSub" color="blue" />
       <StatCard title="Unrealized PnL" :value="fmtPnl(totalPnlThb)" :sub="pnlPct" :positive="totalPnlThb >= 0" color="green" />
       <StatCard title="Active Plans" :value="String(activePlans)" sub="plans" color="purple" />
     </div>
