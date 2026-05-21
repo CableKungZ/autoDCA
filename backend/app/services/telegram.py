@@ -1,3 +1,4 @@
+import asyncio
 from telegram import Bot, Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 from app.config import get_settings
@@ -11,7 +12,7 @@ def get_bot() -> Bot:
     return Bot(token=settings.telegram_bot_token)
 
 
-async def send_message(text: str, chat_id: str | None = None) -> None:
+async def send_message(text: str, chat_id: str | None = None, auto_delete_seconds: int | None = None) -> None:
     if not settings.telegram_bot_token:
         return
     target = chat_id or settings.telegram_chat_id
@@ -19,9 +20,19 @@ async def send_message(text: str, chat_id: str | None = None) -> None:
         return
     bot = get_bot()
     try:
-        await bot.send_message(chat_id=target, text=text, parse_mode="HTML")
+        msg = await bot.send_message(chat_id=target, text=text, parse_mode="HTML")
+        if auto_delete_seconds:
+            asyncio.create_task(_delete_later(bot, target, msg.message_id, auto_delete_seconds))
     except Exception as e:
         logger.error("telegram_send_failed", error=str(e))
+
+
+async def _delete_later(bot: Bot, chat_id: str, message_id: int, delay: int) -> None:
+    await asyncio.sleep(delay)
+    try:
+        await bot.delete_message(chat_id=chat_id, message_id=message_id)
+    except Exception:
+        pass
 
 
 async def notify_order_success(order_data: dict) -> None:
@@ -64,7 +75,7 @@ async def notify_order_failed(order_data: dict, retry_count: int, max_retries: i
         f"Pair: {order_data['symbol']}\n"
         f"Error: {order_data.get('error_message', 'Unknown error')}"
     )
-    await send_message(text)
+    await send_message(text, auto_delete_seconds=5)
 
 
 async def build_summary_text(plans_stats: list[dict], label: str = "All Plans") -> str:

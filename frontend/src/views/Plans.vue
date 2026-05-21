@@ -56,76 +56,81 @@
 
     <!-- Create Plan Modal -->
     <div v-if="showCreate" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto" @click.self="showCreate = false">
-      <div class="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-lg shadow-2xl my-4">
+      <div class="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-3xl shadow-2xl my-4">
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-800">
           <h2 class="text-base font-semibold">New DCA Plan</h2>
           <button @click="showCreate = false" class="text-gray-500 hover:text-gray-300 text-xl leading-none">&times;</button>
         </div>
-        <form @submit.prevent="createPlan" class="px-6 py-5 flex flex-col gap-5">
+        <form @submit.prevent="createPlan">
+          <div class="grid grid-cols-2 divide-x divide-gray-800">
 
-          <!-- Exchange -->
-          <div>
-            <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Exchange</p>
-            <div class="grid grid-cols-2 gap-3">
-              <button type="button" v-for="ex in exchanges" :key="ex.id"
-                @click="form.exchange = ex.id"
-                :class="form.exchange === ex.id ? 'border-indigo-500 bg-indigo-500/10 text-white' : 'border-gray-700 text-gray-400 hover:border-gray-500'"
-                class="border rounded-xl py-3 text-sm font-medium transition-all flex flex-col items-center gap-2">
-                <img :src="ex.logo" :alt="ex.id" class="w-8 h-8 rounded-full object-cover" />
-                <span class="capitalize">{{ ex.id }}</span>
-                <span class="text-xs opacity-60">{{ ex.pairs }}</span>
-              </button>
+            <!-- LEFT: Exchange + Pair -->
+            <div class="px-6 py-5 flex flex-col gap-5">
+              <div>
+                <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Exchange</p>
+                <div class="grid grid-cols-2 gap-3">
+                  <button type="button" v-for="ex in exchanges" :key="ex.id"
+                    @click="form.exchange = ex.id"
+                    :class="form.exchange === ex.id ? 'border-indigo-500 bg-indigo-500/10 text-white' : 'border-gray-700 text-gray-400 hover:border-gray-500'"
+                    class="border rounded-xl py-3 text-sm font-medium transition-all flex flex-col items-center gap-2">
+                    <img :src="ex.logo" :alt="ex.id" class="w-8 h-8 rounded-full object-cover" />
+                    <span class="capitalize">{{ ex.id }}</span>
+                    <span class="text-xs opacity-60">{{ ex.pairs }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="flex flex-col flex-1 min-h-0">
+                <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Trading Pair</p>
+                <input v-model="symbolSearch" type="text" placeholder="Search e.g. BTC, ETH..."
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-indigo-500 mb-2" />
+                <div class="h-64 overflow-y-auto rounded-lg border border-gray-700 bg-gray-800">
+                  <div v-if="symbolsLoading" class="text-center text-gray-500 text-sm py-4">Loading...</div>
+                  <div v-else-if="!filteredSymbols.length" class="text-center text-gray-500 text-sm py-4">No results</div>
+                  <button v-for="s in filteredSymbols" :key="s" type="button"
+                    @click="form.symbol = s; symbolSearch = s"
+                    :class="form.symbol === s ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-700'"
+                    class="w-full text-left px-3 py-2 text-sm transition-colors font-mono">{{ s }}</button>
+                </div>
+                <p v-if="form.symbol" class="text-xs text-indigo-400 mt-1.5">Selected: <b>{{ form.symbol }}</b></p>
+                <p v-else class="text-xs text-gray-600 mt-1.5">Select a pair above</p>
+              </div>
+            </div>
+
+            <!-- RIGHT: Amount + Schedule + Name -->
+            <div class="px-6 py-5 flex flex-col gap-5">
+              <div>
+                <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Amount per order</p>
+                <div class="flex gap-2 flex-wrap mb-2">
+                  <button v-for="preset in amountPresets" :key="preset" type="button"
+                    @click="form.quote_amount = preset"
+                    :class="form.quote_amount === preset ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-gray-800 text-gray-300 border-gray-700 hover:border-gray-500'"
+                    class="border rounded-lg px-3 py-1.5 text-sm transition-colors">{{ preset }} {{ form.currency }}</button>
+                </div>
+                <div class="flex gap-2 items-center">
+                  <input v-model.number="form.quote_amount" type="number" :min="minAmount(form.exchange)" step="any"
+                    class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-indigo-500" />
+                  <span class="text-gray-400 text-sm font-medium w-12 text-center">{{ form.currency }}</span>
+                </div>
+                <p v-if="form.quote_amount < minAmount(form.exchange)" class="text-red-400 text-xs mt-1">
+                  ขั้นต่ำ {{ minAmount(form.exchange) }} {{ form.currency }}
+                </p>
+              </div>
+
+              <SchedulePicker v-model="form.schedule_cron" />
+
+              <div>
+                <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Plan Name</p>
+                <input v-model="form.name" type="text" :placeholder="namePlaceholder"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-indigo-500" />
+              </div>
             </div>
           </div>
 
-          <!-- Symbol -->
-          <div>
-            <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Trading Pair</p>
-            <input v-model="symbolSearch" type="text" placeholder="Search e.g. BTC, ETH..."
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-indigo-500 mb-2" />
-            <div class="max-h-40 overflow-y-auto rounded-lg border border-gray-700 bg-gray-800">
-              <div v-if="symbolsLoading" class="text-center text-gray-500 text-sm py-4">Loading...</div>
-              <div v-else-if="!filteredSymbols.length" class="text-center text-gray-500 text-sm py-4">No results</div>
-              <button v-for="s in filteredSymbols" :key="s" type="button"
-                @click="form.symbol = s; symbolSearch = s"
-                :class="form.symbol === s ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-700'"
-                class="w-full text-left px-3 py-2 text-sm transition-colors font-mono">{{ s }}</button>
-            </div>
-            <p v-if="form.symbol" class="text-xs text-indigo-400 mt-1">Selected: <b>{{ form.symbol }}</b></p>
-          </div>
-
-          <!-- Amount -->
-          <div>
-            <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Amount per order</p>
-            <div class="flex gap-2 flex-wrap mb-2">
-              <button v-for="preset in amountPresets" :key="preset" type="button"
-                @click="form.quote_amount = preset"
-                :class="form.quote_amount === preset ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-gray-800 text-gray-300 border-gray-700 hover:border-gray-500'"
-                class="border rounded-lg px-3 py-1.5 text-sm transition-colors">{{ preset }} {{ form.currency }}</button>
-            </div>
-            <div class="flex gap-2 items-center">
-              <input v-model.number="form.quote_amount" type="number" :min="minAmount(form.exchange)" step="any"
-                class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-indigo-500" />
-              <span class="text-gray-400 text-sm font-medium w-12 text-center">{{ form.currency }}</span>
-            </div>
-            <p v-if="form.quote_amount < minAmount(form.exchange)" class="text-red-400 text-xs mt-1">
-              ขั้นต่ำ {{ minAmount(form.exchange) }} {{ form.currency }}
-            </p>
-          </div>
-
-          <!-- Schedule — alarm clock UX -->
-          <SchedulePicker v-model="form.schedule_cron" />
-
-          <!-- Plan name -->
-          <div>
-            <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Plan Name</p>
-            <input v-model="form.name" type="text" :placeholder="namePlaceholder" required
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-indigo-500" />
-          </div>
-
-          <div class="flex gap-3 pt-1">
+          <!-- Footer -->
+          <div class="flex gap-3 px-6 py-4 border-t border-gray-800">
             <button type="button" @click="showCreate = false" class="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-2.5 rounded-xl text-sm transition-colors">Cancel</button>
-            <button type="submit" :disabled="!form.symbol || !form.name || form.quote_amount < minAmount(form.exchange)"
+            <button type="submit" :disabled="!form.symbol || form.quote_amount < minAmount(form.exchange)"
               class="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white py-2.5 rounded-xl text-sm font-medium transition-colors">
               Create Plan
             </button>

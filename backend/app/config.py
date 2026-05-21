@@ -3,8 +3,8 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql+asyncpg://dca:changeme@postgres:5432/autodca"
-    redis_url: str = "redis://redis:6379/0"
+    database_url: str = "postgresql+asyncpg://dca:changeme@localhost:5432/autodca"
+    redis_url: str = "redis://localhost:6379/0"
     fernet_key: str = ""
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""

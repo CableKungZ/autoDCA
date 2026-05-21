@@ -148,7 +148,7 @@ async def place_sell_order(body: SellRequest, db: AsyncSession = Depends(get_db)
 
 @router.post("/clear-pending", status_code=200)
 async def clear_pending_orders(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Order).where(Order.status == OrderStatus.pending))
+    result = await db.execute(select(Order).where(Order.status.in_([OrderStatus.pending, OrderStatus.cancelled])))
     orders = result.scalars().all()
     count = len(orders)
     for order in orders:

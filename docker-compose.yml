@@ -45,6 +45,7 @@ services:
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - RUN_MODE=api
+      - TZ=Asia/Bangkok
     volumes:
       - logs_data:/app/logs
     depends_on:
@@ -71,6 +72,7 @@ services:
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - RUN_MODE=scheduler
+      - TZ=Asia/Bangkok
     volumes:
       - logs_data:/app/logs
     depends_on:

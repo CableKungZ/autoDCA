@@ -21,7 +21,6 @@
         <option value="filled">Filled</option>
         <option value="pending">Pending</option>
         <option value="failed">Failed</option>
-        <option value="cancelled">Cancelled</option>
       </select>
       <input v-model="filters.date_from" type="date" @change="load" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-200" />
       <input v-model="filters.date_to" type="date" @change="load" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-200" />

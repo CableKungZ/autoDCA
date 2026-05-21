@@ -46,7 +46,7 @@ import { format } from 'date-fns'
 
 const props = defineProps<{ orders: any[]; compact?: boolean; showThb?: boolean }>()
 
-function fmtDate(d: string) { return format(new Date(d), 'dd MMM HH:mm') }
+function fmtDate(d: string) { return format(new Date(d.endsWith('Z') ? d : d + 'Z'), 'dd MMM HH:mm') }
 function fmt(v: number, dp = 4) { return v.toLocaleString('en-US', { maximumFractionDigits: dp, minimumFractionDigits: dp }) }
 
 function baseToken(o: any): string {

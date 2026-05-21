@@ -47,6 +47,7 @@ async def sync_plan_jobs(scheduler: AsyncIOScheduler) -> None:
             day=parts[2],
             month=parts[3],
             day_of_week=parts[4],
+            timezone="Asia/Bangkok",
         )
 
         existing_job = scheduler.get_job(job_id)
@@ -77,7 +78,7 @@ async def sync_plan_jobs(scheduler: AsyncIOScheduler) -> None:
 
 
 def create_scheduler() -> AsyncIOScheduler:
-    scheduler = AsyncIOScheduler()
+    scheduler = AsyncIOScheduler(timezone="Asia/Bangkok")
 
     # Rate fetch every hour
     scheduler.add_job(run_rate_fetch_job, CronTrigger(minute=0), id="rate_fetch", replace_existing=True)

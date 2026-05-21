@@ -170,7 +170,7 @@ const activePlans = computed(() => plans.value.filter(p => p.status === 'active'
 
 const rateSeries = computed(() => [{
   name: 'THB/USDT',
-  data: rateData.value.map((r: any) => ({ x: new Date(r.recorded_at).getTime(), y: parseFloat(r.rate) })),
+  data: rateData.value.map((r: any) => ({ x: new Date(r.recorded_at.endsWith('Z') ? r.recorded_at : r.recorded_at + 'Z').getTime(), y: parseFloat(r.rate) })),
 }])
 
 const rateChartOptions = {
