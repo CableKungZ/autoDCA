@@ -98,13 +98,15 @@ function fmtSpent(o: any): string {
 function fmtPrice(o: any): string {
   if (!o.price) return '—'
   const val = displayVal(parseFloat(o.price), o)
-  return `${fmt(val, 2)} ${displayCur(o)}`
+  const cur = props.showThb ? 'THB' : (nativeCurrency(o) === 'THB' ? 'USDT' : nativeCurrency(o))
+  return `${fmt(val, 4)} ${cur}`
 }
 
 function fmtCostPerToken(o: any): string {
   if (!o.cost_per_token) return '—'
   const val = displayVal(parseFloat(o.cost_per_token), o)
-  return `${fmt(val, 2)} ${displayCur(o)}`
+  const cur = props.showThb ? 'THB' : (nativeCurrency(o) === 'THB' ? 'USDT' : nativeCurrency(o))
+  return `${fmt(val, 4)} ${cur}`
 }
 
 function statusClass(s: string) {

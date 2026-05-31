@@ -15,7 +15,7 @@ async def list_rates(
     db: AsyncSession = Depends(get_db),
 ):
     from datetime import datetime, timezone
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
     result = await db.execute(
         select(RateSnapshot)
         .where(RateSnapshot.recorded_at >= since)

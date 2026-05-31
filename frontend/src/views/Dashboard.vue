@@ -25,9 +25,9 @@
 
     <!-- Stat cards -->
     <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-      <StatCard title="Total Invested" :value="fmt(totalInvestedThb)" sub="THB" color="indigo" />
+      <StatCard title="Total Invested" :value="fmt(totalInvestedDisplay)" :sub="summarySubLabel" color="indigo" />
       <StatCard v-if="selectedPlanId" title="Avg DCA Price" :value="fmtAvgCost" :sub="avgCostSub" color="blue" />
-      <StatCard title="Unrealized PnL" :value="fmtPnl(totalPnlThb)" :sub="pnlPct" :positive="totalPnlThb >= 0" color="green" />
+      <StatCard title="Unrealized PnL" :value="fmtPnl(totalPnlDisplay)" :sub="pnlPct" :positive="totalPnlThb >= 0" color="green" />
       <StatCard title="Active Plans" :value="String(activePlans)" sub="plans" color="purple" />
     </div>
 
@@ -41,7 +41,7 @@
           </div>
           <div class="flex items-center gap-2">
             <span :class="s.unrealized_pnl >= 0 ? 'text-green-400' : 'text-red-400'" class="text-xs font-mono">
-              {{ s.unrealized_pnl >= 0 ? '+' : '' }}{{ fmt(toThb(s.unrealized_pnl, s.currency)) }} THB
+              {{ s.unrealized_pnl >= 0 ? '+' : '' }}{{ fmt(displayVal(s.unrealized_pnl, s.unrealized_pnl_thb, s.currency, s.thb_rate)) }} {{ displayCur(s.currency) }}
               ({{ planPnlPct(s) }}%)
             </span>
             <button @click="copyPlanJson(s)" class="text-gray-600 hover:text-gray-300 text-xs border border-gray-700 px-1.5 py-0.5 rounded" title="Copy JSON">
@@ -52,19 +52,19 @@
         <div class="grid grid-cols-2 gap-2 mb-2">
           <div>
             <p class="text-gray-600 text-xs mb-0.5">Invested</p>
-            <p class="text-white font-mono">{{ fmt(displayVal(s.total_invested, s.currency)) }}</p>
+            <p class="text-white font-mono">{{ fmt(displayVal(s.total_invested, s.total_invested_thb, s.currency, s.thb_rate)) }}</p>
             <p class="text-gray-600 text-xs">{{ displayCur(s.currency) }}</p>
           </div>
           <div>
             <p class="text-gray-600 text-xs mb-0.5">Avg Cost</p>
-            <p class="text-white font-mono">{{ fmt(displayVal(s.avg_cost, s.currency)) }}</p>
+            <p class="text-white font-mono">{{ fmt(displayVal(s.avg_cost, s.avg_cost_thb, s.currency, s.thb_rate)) }}</p>
             <p class="text-gray-600 text-xs">{{ displayCur(s.currency) }}</p>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div>
             <p class="text-gray-600 text-xs mb-0.5">Current Price</p>
-            <p class="text-yellow-300 font-mono">{{ fmt(displayVal(s.current_price, s.currency)) }}</p>
+            <p class="text-yellow-300 font-mono">{{ fmt(displayVal(s.current_price, s.current_price_thb, s.currency, s.thb_rate)) }}</p>
             <p class="text-gray-600 text-xs">{{ displayCur(s.currency) }}</p>
           </div>
           <div>
@@ -131,13 +131,31 @@ const visibleStats = computed(() =>
   selectedPlanId.value ? stats.value.filter(s => s.plan_id === selectedPlanId.value) : stats.value
 )
 
-// Always show in THB for top summary cards
+// Convert to THB — prefer backend-computed thb value, fallback to live rate
+function toThbVal(nativeVal: number, thbVal: number, currency: string): number {
+  if (currency === 'THB') return nativeVal
+  if (thbVal && thbVal > 0) return thbVal
+  return nativeVal * (currentRate.value || 1)
+}
+
+// Always show in THB for PnL percentage base
 const totalInvestedThb = computed(() =>
-  visibleStats.value.reduce((sum, s) => sum + toThb(s.total_invested, s.currency), 0)
+  visibleStats.value.reduce((sum, s) => sum + toThbVal(s.total_invested, s.total_invested_thb, s.currency), 0)
 )
 const totalPnlThb = computed(() =>
-  visibleStats.value.reduce((sum, s) => sum + toThb(s.unrealized_pnl, s.currency), 0)
+  visibleStats.value.reduce((sum, s) => sum + toThbVal(s.unrealized_pnl, s.unrealized_pnl_thb, s.currency), 0)
 )
+
+// Display values — toggle between USDT and THB
+const totalInvestedDisplay = computed(() => {
+  if (showThb.value) return totalInvestedThb.value
+  return visibleStats.value.reduce((sum, s) => sum + toUsdtVal(s.total_invested, s.currency, s.thb_rate), 0)
+})
+const totalPnlDisplay = computed(() => {
+  if (showThb.value) return totalPnlThb.value
+  return visibleStats.value.reduce((sum, s) => sum + toUsdtVal(s.unrealized_pnl, s.currency, s.thb_rate), 0)
+})
+const summarySubLabel = computed(() => showThb.value ? 'THB' : 'USDT')
 const totalInvestedForPct = computed(() => totalInvestedThb.value)
 
 const isSingleCurrency = computed(() => {
@@ -149,7 +167,9 @@ const fmtAvgCost = computed(() => {
   if (!visibleStats.value.length) return '—'
   if (visibleStats.value.length === 1 || isSingleCurrency.value) {
     const s = visibleStats.value[0]
-    const val = showThb.value ? toThb(s.avg_cost, s.currency) : s.avg_cost
+    const val = showThb.value
+      ? toThbVal(s.avg_cost, s.avg_cost_thb, s.currency)
+      : toUsdtVal(s.avg_cost, s.currency, s.thb_rate)
     return fmt(val)
   }
   // Mixed: show THB-converted avg across all
@@ -181,7 +201,10 @@ const rateChartOptions = {
   yaxis: { labels: { style: { colors: '#9ca3af' } } },
   grid: { borderColor: '#374151' },
   colors: ['#6366f1'],
-  tooltip: { x: { format: 'dd MMM HH:mm' } },
+  tooltip: {
+    x: { format: 'dd MMM HH:mm' },
+    y: { formatter: (val: number) => `${val.toFixed(2)} THB` },
+  },
 }
 
 async function loadStats() {
@@ -216,29 +239,27 @@ function fmt(v: number) { return v.toLocaleString('en-US', { maximumFractionDigi
 function fmtPnl(v: number) { return `${v >= 0 ? '+' : ''}${fmt(v)}` }
 
 function planPnlPct(s: any): string {
-  const investedThb = toThb(s.total_invested, s.currency)
-  const pnlThb = toThb(s.unrealized_pnl, s.currency)
-  const pct = investedThb > 0 ? (pnlThb / investedThb) * 100 : 0
+  const pct = s.unrealized_pnl_pct ?? 0
   return `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}`
 }
 
-function toUsdt(val: number, currency: string): number {
-  if (currency !== 'THB') return val
-  const rate = currentRate.value || 1
-  return val / rate
+function toUsdtVal(nativeVal: number, currency: string, planRate?: number): number {
+  if (currency !== 'THB') return nativeVal
+  const rate = currentRate.value || planRate || 1
+  return nativeVal / rate
 }
 
-function displayVal(val: number, currency: string): number {
-  if (showThb.value) return toThb(val, currency)
-  return toUsdt(val, currency)
+function displayVal(nativeVal: number, thbVal: number, currency = 'USDT', planRate?: number): number {
+  if (showThb.value) return toThbVal(nativeVal, thbVal, currency)
+  return toUsdtVal(nativeVal, currency, planRate)
 }
-function displayCur(_currency: string): string {
-  return showThb.value ? 'THB' : 'USDT'
+function displayCur(currency: string): string {
+  return showThb.value ? 'THB' : (currency === 'THB' ? 'USDT' : currency)
 }
 
 const copiedId = ref<string | null>(null)
 function copyPlanJson(s: any) {
-  const rate = currentRate.value || 1
+  const rate = currentRate.value || s.thb_rate || 1
   const payload = {
     name: s.name,
     exchange: s.exchange,
