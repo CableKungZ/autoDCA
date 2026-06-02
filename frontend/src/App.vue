@@ -40,6 +40,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useStatsStore } from './stores/stats'
 
 const nav = [
   { path: '/', icon: '📊', label: 'Dashboard' },
@@ -48,6 +49,7 @@ const nav = [
   { path: '/settings', icon: '⚙️', label: 'Settings' },
 ]
 
+const statsStore = useStatsStore()
 const wsConnected = ref(false)
 const reloadKey = ref(0)
 const toast = ref<{ icon: string; title: string; body: string } | null>(null)
@@ -80,9 +82,11 @@ function connect() {
       const { event, data } = JSON.parse(e.data)
       if (event === 'order_filled') {
         showToast('✅', 'Order Filled', `${data.symbol} ${data.side ?? 'buy'}`)
+        statsStore.invalidate()
         triggerReload()
       } else if (event === 'order_failed') {
         showToast('⚠️', 'Order Failed', data.symbol)
+        statsStore.invalidate()
         triggerReload()
       }
     } catch {}

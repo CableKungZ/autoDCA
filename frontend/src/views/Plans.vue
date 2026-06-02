@@ -270,7 +270,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
-import { plansApi, statsApi } from '../api'
+import { plansApi } from '../api'
+import { useStatsStore } from '../stores/stats'
 import SchedulePicker from '../components/SchedulePicker.vue'
 import SellModal from '../components/SellModal.vue'
 
@@ -397,10 +398,12 @@ watch(() => form.value.exchange, (ex) => {
   loadSymbols(ex)
 })
 
+const statsStore = useStatsStore()
+
 async function load() {
-  const [plansRes, statsRes] = await Promise.all([plansApi.list(), statsApi.summary({})])
+  const [plansRes, statsData] = await Promise.all([plansApi.list(), statsStore.load()])
   plans.value = plansRes.data
-  stats.value = statsRes.data
+  stats.value = statsData
 }
 
 

@@ -103,10 +103,12 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { statsApi, ratesApi, ordersApi, plansApi } from '../api'
+import { ratesApi, ordersApi, plansApi } from '../api'
+import { useStatsStore } from '../stores/stats'
 import StatCard from '../components/StatCard.vue'
 import OrderTable from '../components/OrderTable.vue'
 
+const statsStore = useStatsStore()
 const plans = ref<any[]>([])
 const selectedPlanId = ref<string | null>(null)
 const stats = ref<any[]>([])
@@ -209,8 +211,7 @@ const rateChartOptions = {
 
 async function loadStats() {
   const params = selectedPlanId.value ? { plan_id: selectedPlanId.value } : {}
-  const res = await statsApi.summary(params)
-  stats.value = res.data
+  stats.value = await statsStore.load(params)
 }
 
 async function loadRates() {
