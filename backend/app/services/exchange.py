@@ -64,7 +64,15 @@ async def _binance_request(
             resp = await client.get(url, params=params, headers=headers)
         else:
             resp = await client.post(url, params=params, headers=headers)
-    resp.raise_for_status()
+    if not resp.is_success:
+        try:
+            err = resp.json()
+            code = err.get("code", "")
+            msg = err.get("msg", resp.text)
+        except Exception:
+            code, msg = "", resp.text
+        logger.error("binance_http_error", status=resp.status_code, code=code, msg=msg, path=path)
+        raise ValueError(f"Binance error {code}: {msg}")
     return resp.json()
 
 
@@ -138,19 +146,27 @@ def _bitkub_ticker_items(data) -> list:
 
 
 # ---------------------------------------------------------------------------
-# Public: fetch ticker price
+# Public: fetch ticker price (with 30s in-memory cache)
 # ---------------------------------------------------------------------------
+
+_ticker_cache: dict[str, tuple[float, float]] = {}  # key -> (price, expires_at)
+TICKER_CACHE_TTL = 30  # seconds
+
 
 async def fetch_ticker_price(exchange: str, symbol: str) -> float:
     """Return last price for symbol. symbol format: BTC/USDT or BTC/THB."""
+    cache_key = f"{exchange}:{symbol}"
+    cached = _ticker_cache.get(cache_key)
+    if cached and time.monotonic() < cached[1]:
+        return cached[0]
+
     if exchange == "binance":
         bsymbol = symbol.replace("/", "")
         data = await _binance_request("GET", "/api/v3/ticker/price", params={"symbol": bsymbol})
         price = float(data["price"])
         logger.info("ticker_fetched", exchange=exchange, symbol=symbol, price=price)
-        return price
 
-    if exchange == "bitkub":
+    elif exchange == "bitkub":
         bsymbol = symbol.replace("/", "_").upper()
         data = await _bitkub_request("GET", "/api/v3/market/ticker")
         ticker = next((t for t in _bitkub_ticker_items(data) if t.get("symbol", "").upper() == bsymbol), None)
@@ -158,9 +174,12 @@ async def fetch_ticker_price(exchange: str, symbol: str) -> float:
             raise ValueError(f"Symbol {bsymbol} not found in Bitkub ticker")
         price = float(ticker["last"])
         logger.info("ticker_fetched", exchange=exchange, symbol=symbol, price=price)
-        return price
 
-    raise ValueError(f"Unsupported exchange: {exchange}")
+    else:
+        raise ValueError(f"Unsupported exchange: {exchange}")
+
+    _ticker_cache[cache_key] = (price, time.monotonic() + TICKER_CACHE_TTL)
+    return price
 
 
 # ---------------------------------------------------------------------------
