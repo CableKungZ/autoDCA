@@ -7,6 +7,45 @@
       </button>
     </div>
 
+    <!-- Monthly Spend Summary -->
+    <div v-if="plans.length" class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">ค่าใช้จ่ายต่อเดือน (ทุก Plan)</h2>
+          <p class="text-gray-600 text-xs mt-0.5">คำนวณจาก Schedule × จำนวนเงิน</p>
+        </div>
+        <button
+          @click="showThb = !showThb"
+          :class="['px-3 py-1 rounded-lg text-xs border transition-colors', showThb ? 'bg-amber-600 border-amber-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white']"
+        >฿ THB</button>
+      </div>
+      <div class="flex items-end gap-6 mb-4">
+        <div>
+          <p class="text-gray-500 text-xs mb-1">รวมต่อเดือน</p>
+          <p class="text-white text-2xl font-mono font-bold">{{ fmt(totalMonthlyDisplay) }}</p>
+          <p class="text-gray-500 text-xs mt-0.5">{{ showThb ? 'THB' : 'USDT' }} / เดือน</p>
+        </div>
+        <div>
+          <p class="text-gray-500 text-xs mb-1">ต่อปี</p>
+          <p class="text-gray-300 text-lg font-mono">{{ fmt(totalMonthlyDisplay * 12) }}</p>
+          <p class="text-gray-500 text-xs mt-0.5">{{ showThb ? 'THB' : 'USDT' }} / ปี</p>
+        </div>
+      </div>
+      <div class="border-t border-gray-800 pt-3 space-y-2">
+        <div v-for="p in activePlansWithMonthly" :key="p.id" class="flex items-center justify-between text-sm">
+          <div class="flex items-center gap-2">
+            <img :src="exchangeLogo(p.exchange)" :alt="p.exchange" class="w-4 h-4 rounded-full object-cover" />
+            <span class="text-gray-300">{{ p.name }}</span>
+            <span class="text-gray-600 text-xs">· {{ cronShortLabel(p.schedule_cron) }}</span>
+          </div>
+          <div class="text-right">
+            <span class="text-white font-mono">{{ fmt(showThb ? p.monthlyThb : p.monthlyUsdt) }}</span>
+            <span class="text-gray-500 text-xs ml-1">{{ showThb ? 'THB' : 'USDT' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
       <table class="w-full text-sm">
         <thead>
@@ -141,55 +180,66 @@
 
     <!-- Edit Plan Modal -->
     <div v-if="showEdit" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto" @click.self="showEdit = false">
-      <div class="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-lg shadow-2xl my-4">
+      <div class="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-3xl shadow-2xl my-4">
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-800">
           <h2 class="text-base font-semibold">Edit Plan</h2>
           <button @click="showEdit = false" class="text-gray-500 hover:text-gray-300 text-xl leading-none">&times;</button>
         </div>
-        <form @submit.prevent="savePlan" class="px-6 py-5 flex flex-col gap-5">
-          <div>
-            <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Exchange</p>
-            <div class="flex items-center gap-3 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
-              <img :src="exchangeLogo(editForm.exchange)" class="w-7 h-7 rounded-full object-cover" />
-              <span class="capitalize text-white">{{ editForm.exchange }}</span>
-              <span class="text-gray-600 text-xs ml-1">(ไม่สามารถเปลี่ยนได้)</span>
+        <form @submit.prevent="savePlan">
+          <div class="grid grid-cols-2 divide-x divide-gray-800">
+
+            <!-- LEFT: Exchange + Pair (read-only) -->
+            <div class="px-6 py-5 flex flex-col gap-5">
+              <div>
+                <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Exchange</p>
+                <div class="flex items-center gap-3 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
+                  <img :src="exchangeLogo(editForm.exchange)" class="w-7 h-7 rounded-full object-cover" />
+                  <span class="capitalize text-white">{{ editForm.exchange }}</span>
+                  <span class="text-gray-600 text-xs ml-1">(ไม่สามารถเปลี่ยนได้)</span>
+                </div>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Trading Pair</p>
+                <div class="bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 font-mono text-indigo-300">
+                  {{ editForm.symbol }} <span class="text-gray-600 text-xs ml-2">(ไม่สามารถเปลี่ยนได้)</span>
+                </div>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Max Retries</p>
+                <input v-model.number="editForm.max_retries" type="number" min="0" max="10"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-indigo-500" />
+              </div>
+            </div>
+
+            <!-- RIGHT: Amount + Schedule + Name -->
+            <div class="px-6 py-5 flex flex-col gap-5">
+              <div>
+                <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Amount per order</p>
+                <div class="flex gap-2 flex-wrap mb-2">
+                  <button v-for="preset in editAmountPresets" :key="preset" type="button"
+                    @click="editForm.quote_amount = preset"
+                    :class="editForm.quote_amount === preset ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-gray-800 text-gray-300 border-gray-700 hover:border-gray-500'"
+                    class="border rounded-lg px-3 py-1.5 text-sm transition-colors">{{ preset }} {{ editForm.currency }}</button>
+                </div>
+                <div class="flex gap-2 items-center">
+                  <input v-model.number="editForm.quote_amount" type="number" :min="minAmount(editForm.exchange)" step="any"
+                    class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-indigo-500" />
+                  <span class="text-gray-400 text-sm font-medium w-12 text-center">{{ editForm.currency }}</span>
+                </div>
+                <p v-if="editForm.quote_amount < minAmount(editForm.exchange)" class="text-red-400 text-xs mt-1">
+                  ขั้นต่ำ {{ minAmount(editForm.exchange) }} {{ editForm.currency }}
+                </p>
+              </div>
+              <SchedulePicker v-model="editForm.schedule_cron" />
+              <div>
+                <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Plan Name</p>
+                <input v-model="editForm.name" type="text" required
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-indigo-500" />
+              </div>
             </div>
           </div>
-          <div>
-            <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Trading Pair</p>
-            <div class="bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 font-mono text-indigo-300">
-              {{ editForm.symbol }} <span class="text-gray-600 text-xs ml-2">(ไม่สามารถเปลี่ยนได้)</span>
-            </div>
-          </div>
-          <div>
-            <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Amount per order</p>
-            <div class="flex gap-2 flex-wrap mb-2">
-              <button v-for="preset in editAmountPresets" :key="preset" type="button"
-                @click="editForm.quote_amount = preset"
-                :class="editForm.quote_amount === preset ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-gray-800 text-gray-300 border-gray-700 hover:border-gray-500'"
-                class="border rounded-lg px-3 py-1.5 text-sm transition-colors">{{ preset }} {{ editForm.currency }}</button>
-            </div>
-            <div class="flex gap-2 items-center">
-              <input v-model.number="editForm.quote_amount" type="number" :min="minAmount(editForm.exchange)" step="any"
-                class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-indigo-500" />
-              <span class="text-gray-400 text-sm font-medium w-12 text-center">{{ editForm.currency }}</span>
-            </div>
-            <p v-if="editForm.quote_amount < minAmount(editForm.exchange)" class="text-red-400 text-xs mt-1">
-              ขั้นต่ำ {{ minAmount(editForm.exchange) }} {{ editForm.currency }}
-            </p>
-          </div>
-          <SchedulePicker v-model="editForm.schedule_cron" />
-          <div>
-            <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Plan Name</p>
-            <input v-model="editForm.name" type="text" required
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-indigo-500" />
-          </div>
-          <div>
-            <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Max Retries</p>
-            <input v-model.number="editForm.max_retries" type="number" min="0" max="10"
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-indigo-500" />
-          </div>
-          <div class="flex gap-3 pt-1">
+
+          <div class="flex gap-3 px-6 py-4 border-t border-gray-800">
             <button type="button" @click="showEdit = false" class="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-2.5 rounded-xl text-sm transition-colors">Cancel</button>
             <button type="submit" :disabled="!editForm.name || editForm.quote_amount < minAmount(editForm.exchange)"
               class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white py-2.5 rounded-xl text-sm font-medium transition-colors">
@@ -220,17 +270,78 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
-import { plansApi } from '../api'
+import { plansApi, statsApi } from '../api'
 import SchedulePicker from '../components/SchedulePicker.vue'
 import SellModal from '../components/SellModal.vue'
 
 const plans = ref<any[]>([])
+const stats = ref<any[]>([])
+const showThb = ref(false)
 const showCreate = ref(false)
 const showEdit = ref(false)
 const deleteTarget = ref<any>(null)
 const copied = ref<string | null>(null)
 const editTarget = ref<any>(null)
 const sellTarget = ref<any>(null)
+
+function fmt(v: number) { return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+
+// Estimate how many times a cron fires per month (30 days)
+function timesPerMonth(cron: string): number {
+  const parts = cron.trim().split(/\s+/)
+  if (parts.length !== 5) return 0
+  const [min, hour, dom, month, dow] = parts
+  if (dow !== '*') {
+    // weekly-ish: count unique dow values * 4.33 weeks
+    const days = dow.split(',').length
+    return days * 4.33
+  }
+  if (dom !== '*') {
+    // monthly: count unique dom values
+    return dom.split(',').length
+  }
+  if (hour.startsWith('*/')) {
+    // every N hours
+    const n = parseInt(hour.slice(2))
+    return (24 / n) * 30
+  }
+  if (hour !== '*') {
+    // daily at specific hour(s)
+    return hour.split(',').length * 30
+  }
+  return 30
+}
+
+function cronShortLabel(cron: string): string {
+  const n = timesPerMonth(cron)
+  if (n <= 1) return 'รายเดือน'
+  if (n <= 5) return 'รายสัปดาห์'
+  if (n <= 31) return 'รายวัน'
+  return `${Math.round(n)}x/เดือน`
+}
+
+const latestThbRate = computed(() => {
+  const s = stats.value.find(s => s.thb_rate)
+  return s?.thb_rate ?? 33
+})
+
+const activePlansWithMonthly = computed(() =>
+  plans.value
+    .filter(p => p.status !== 'deleted')
+    .map(p => {
+      const times = timesPerMonth(p.schedule_cron)
+      const amount = parseFloat(p.quote_amount)
+      const isThb = p.currency === 'THB'
+      const monthlyNative = times * amount
+      const monthlyThb = isThb ? monthlyNative : monthlyNative * latestThbRate.value
+      const monthlyUsdt = isThb ? monthlyNative / latestThbRate.value : monthlyNative
+      return { ...p, monthlyThb, monthlyUsdt }
+    })
+)
+
+const totalMonthlyThb = computed(() => activePlansWithMonthly.value.reduce((s, p) => s + p.monthlyThb, 0))
+const totalMonthlyUsdt = computed(() => activePlansWithMonthly.value.reduce((s, p) => s + p.monthlyUsdt, 0))
+const totalMonthlyDisplay = computed(() => showThb.value ? totalMonthlyThb.value : totalMonthlyUsdt.value)
 
 function openSell(p: any) { sellTarget.value = p }
 async function sellDone() { sellTarget.value = null }
@@ -286,7 +397,12 @@ watch(() => form.value.exchange, (ex) => {
   loadSymbols(ex)
 })
 
-async function load() { const res = await plansApi.list(); plans.value = res.data }
+async function load() {
+  const [plansRes, statsRes] = await Promise.all([plansApi.list(), statsApi.summary({})])
+  plans.value = plansRes.data
+  stats.value = statsRes.data
+}
+
 
 function openCreate() {
   form.value = defaultForm(); symbolSearch.value = ''; showCreate.value = true; loadSymbols(form.value.exchange)
