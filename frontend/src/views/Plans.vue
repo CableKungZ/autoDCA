@@ -11,8 +11,8 @@
     <div v-if="plans.length" class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
       <div class="flex items-center justify-between mb-4">
         <div>
-          <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">ค่าใช้จ่ายต่อเดือน (ทุก Plan)</h2>
-          <p class="text-gray-600 text-xs mt-0.5">คำนวณจาก Schedule × จำนวนเงิน</p>
+          <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Monthly Spend (All Plans)</h2>
+          <p class="text-gray-600 text-xs mt-0.5">Calculated from Schedule × Amount per order</p>
         </div>
         <button
           @click="showThb = !showThb"
@@ -21,14 +21,14 @@
       </div>
       <div class="flex items-end gap-6 mb-4">
         <div>
-          <p class="text-gray-500 text-xs mb-1">รวมต่อเดือน</p>
+          <p class="text-gray-500 text-xs mb-1">Total / Month</p>
           <p class="text-white text-2xl font-mono font-bold">{{ fmt(totalMonthlyDisplay) }}</p>
-          <p class="text-gray-500 text-xs mt-0.5">{{ showThb ? 'THB' : 'USDT' }} / เดือน</p>
+          <p class="text-gray-500 text-xs mt-0.5">{{ showThb ? 'THB' : 'USDT' }} / month</p>
         </div>
         <div>
-          <p class="text-gray-500 text-xs mb-1">ต่อปี</p>
+          <p class="text-gray-500 text-xs mb-1">Total / Year</p>
           <p class="text-gray-300 text-lg font-mono">{{ fmt(totalMonthlyDisplay * 12) }}</p>
-          <p class="text-gray-500 text-xs mt-0.5">{{ showThb ? 'THB' : 'USDT' }} / ปี</p>
+          <p class="text-gray-500 text-xs mt-0.5">{{ showThb ? 'THB' : 'USDT' }} / year</p>
         </div>
       </div>
       <div class="border-t border-gray-800 pt-3 space-y-2">
@@ -152,7 +152,7 @@
                   <span class="text-gray-400 text-sm font-medium w-12 text-center">{{ form.currency }}</span>
                 </div>
                 <p v-if="form.quote_amount < minAmount(form.exchange)" class="text-red-400 text-xs mt-1">
-                  ขั้นต่ำ {{ minAmount(form.exchange) }} {{ form.currency }}
+                  Minimum {{ minAmount(form.exchange) }} {{ form.currency }}
                 </p>
               </div>
 
@@ -195,13 +195,13 @@
                 <div class="flex items-center gap-3 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
                   <img :src="exchangeLogo(editForm.exchange)" class="w-7 h-7 rounded-full object-cover" />
                   <span class="capitalize text-white">{{ editForm.exchange }}</span>
-                  <span class="text-gray-600 text-xs ml-1">(ไม่สามารถเปลี่ยนได้)</span>
+                  <span class="text-gray-600 text-xs ml-1">(cannot be changed)</span>
                 </div>
               </div>
               <div>
                 <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Trading Pair</p>
                 <div class="bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 font-mono text-indigo-300">
-                  {{ editForm.symbol }} <span class="text-gray-600 text-xs ml-2">(ไม่สามารถเปลี่ยนได้)</span>
+                  {{ editForm.symbol }} <span class="text-gray-600 text-xs ml-2">(cannot be changed)</span>
                 </div>
               </div>
               <div>
@@ -227,7 +227,7 @@
                   <span class="text-gray-400 text-sm font-medium w-12 text-center">{{ editForm.currency }}</span>
                 </div>
                 <p v-if="editForm.quote_amount < minAmount(editForm.exchange)" class="text-red-400 text-xs mt-1">
-                  ขั้นต่ำ {{ minAmount(editForm.exchange) }} {{ editForm.currency }}
+                  Minimum {{ minAmount(editForm.exchange) }} {{ editForm.currency }}
                 </p>
               </div>
               <SchedulePicker v-model="editForm.schedule_cron" />
@@ -255,7 +255,7 @@
       <div class="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl">
         <div class="text-3xl mb-3">🗑️</div>
         <p class="text-base font-semibold mb-1">Delete "{{ deleteTarget.name }}"?</p>
-        <p class="text-gray-400 text-sm mb-6">แผนนี้จะถูกลบและหยุดทำงานทันที</p>
+        <p class="text-gray-400 text-sm mb-6">This plan will be deleted and stopped immediately.</p>
         <div class="flex gap-3">
           <button @click="deleteTarget = null" class="flex-1 bg-gray-800 hover:bg-gray-700 py-2.5 rounded-xl text-sm transition-colors">Cancel</button>
           <button @click="deletePlan()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-sm font-medium transition-colors">Delete</button>
@@ -314,10 +314,10 @@ function timesPerMonth(cron: string): number {
 
 function cronShortLabel(cron: string): string {
   const n = timesPerMonth(cron)
-  if (n <= 1) return 'รายเดือน'
-  if (n <= 5) return 'รายสัปดาห์'
-  if (n <= 31) return 'รายวัน'
-  return `${Math.round(n)}x/เดือน`
+  if (n <= 1) return 'Monthly'
+  if (n <= 5) return 'Weekly'
+  if (n <= 31) return 'Daily'
+  return `${Math.round(n)}x/month`
 }
 
 const latestThbRate = computed(() => {
@@ -427,10 +427,10 @@ function statusClass(s: string) {
 
 function cronLabel(cron: string): string {
   const map: Record<string, string> = {
-    '0 9 * * *': 'ทุกวัน 09:00',
-    '0 9 * * 1': 'ทุกวันจันทร์ 09:00',
-    '0 9 1 * *': 'ทุกวันที่ 1 09:00',
-    '0 */4 * * *': 'ทุก 4 ชั่วโมง',
+    '0 9 * * *': 'Daily 09:00',
+    '0 9 * * 1': 'Every Monday 09:00',
+    '0 9 1 * *': 'Day 1 of month 09:00',
+    '0 */4 * * *': 'Every 4 hours',
   }
   return map[cron] ?? cron
 }

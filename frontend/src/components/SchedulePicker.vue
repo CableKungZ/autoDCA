@@ -15,7 +15,7 @@
 
     <!-- Hour mode: every N hours -->
     <div v-if="mode === 'hours'" class="mb-4">
-      <p class="text-xs text-gray-500 mb-2">ทุกกี่ชั่วโมง</p>
+      <p class="text-xs text-gray-500 mb-2">Every N hours</p>
       <div class="flex gap-2 flex-wrap">
         <button v-for="h in [1,2,4,6,8,12]" :key="h" type="button"
           @click="everyHours = h"
@@ -28,7 +28,7 @@
 
     <!-- Day of week (weekly mode) -->
     <div v-if="mode === 'weekly'" class="mb-4">
-      <p class="text-xs text-gray-500 mb-2">วันในสัปดาห์</p>
+      <p class="text-xs text-gray-500 mb-2">Day of week</p>
       <div class="flex gap-2">
         <button v-for="d in days" :key="d.val" type="button"
           @click="dow = d.val"
@@ -41,7 +41,7 @@
 
     <!-- Day of month (monthly mode) -->
     <div v-if="mode === 'monthly'" class="mb-4">
-      <p class="text-xs text-gray-500 mb-2">วันที่ในเดือน</p>
+      <p class="text-xs text-gray-500 mb-2">Day of month</p>
       <div class="flex gap-2 flex-wrap">
         <button v-for="d in [1,5,10,15,20,25,28]" :key="d" type="button"
           @click="dom = d"
@@ -49,14 +49,14 @@
           class="border rounded-lg px-3 py-1.5 text-sm transition-colors">
           {{ d }}
         </button>
-        <input v-model.number="dom" type="number" min="1" max="28" placeholder="วันที่"
+        <input v-model.number="dom" type="number" min="1" max="28" placeholder="Day"
           class="border border-gray-700 bg-gray-800 rounded-lg px-2 py-1.5 text-sm text-gray-100 w-20 focus:outline-none focus:border-indigo-500" />
       </div>
     </div>
 
     <!-- Time picker (not for hourly) -->
     <div v-if="mode !== 'hours'" class="mb-4">
-      <p class="text-xs text-gray-500 mb-2">เวลา</p>
+      <p class="text-xs text-gray-500 mb-2">Time</p>
       <div class="flex items-center gap-3 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
         <!-- Hour scroll -->
         <div class="flex flex-col items-center">
@@ -100,20 +100,20 @@ const emit = defineEmits<{ (e: 'update:modelValue', v: string): void }>()
 type Mode = 'daily' | 'weekly' | 'monthly' | 'hours'
 
 const modes = [
-  { id: 'daily' as Mode,   icon: '☀️', label: 'ทุกวัน' },
-  { id: 'weekly' as Mode,  icon: '📅', label: 'รายสัปดาห์' },
-  { id: 'monthly' as Mode, icon: '🗓️', label: 'รายเดือน' },
-  { id: 'hours' as Mode,   icon: '⏱️', label: 'ทุก N ชม.' },
+  { id: 'daily' as Mode,   icon: '☀️', label: 'Daily' },
+  { id: 'weekly' as Mode,  icon: '📅', label: 'Weekly' },
+  { id: 'monthly' as Mode, icon: '🗓️', label: 'Monthly' },
+  { id: 'hours' as Mode,   icon: '⏱️', label: 'Every Nh' },
 ]
 
 const days = [
-  { val: 1, label: 'จ' },
-  { val: 2, label: 'อ' },
-  { val: 3, label: 'พ' },
-  { val: 4, label: 'พฤ' },
-  { val: 5, label: 'ศ' },
-  { val: 6, label: 'ส' },
-  { val: 0, label: 'อา' },
+  { val: 1, label: 'Mon' },
+  { val: 2, label: 'Tue' },
+  { val: 3, label: 'Wed' },
+  { val: 4, label: 'Thu' },
+  { val: 5, label: 'Fri' },
+  { val: 6, label: 'Sat' },
+  { val: 0, label: 'Sun' },
 ]
 
 const timePresets = [
@@ -125,8 +125,8 @@ const timePresets = [
 const mode = ref<Mode>('daily')
 const hh = ref(9)
 const mm = ref(0)
-const dow = ref(1)   // day of week for weekly
-const dom = ref(1)   // day of month for monthly
+const dow = ref(1)
+const dom = ref(1)
 const everyHours = ref(4)
 
 function pad(n: number) { return String(n).padStart(2, '0') }
@@ -139,21 +139,19 @@ const cron = computed(() => {
   return `${mm.value} ${hh.value} * * *`
 })
 
-const dayNames: Record<number, string> = { 0: 'อาทิตย์', 1: 'จันทร์', 2: 'อังคาร', 3: 'พุธ', 4: 'พฤหัส', 5: 'ศุกร์', 6: 'เสาร์' }
+const dayNames: Record<number, string> = { 0: 'Sunday', 1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday' }
 
 const summary = computed(() => {
-  if (mode.value === 'hours') return `ทุก ${everyHours.value} ชั่วโมง`
+  if (mode.value === 'hours') return `Every ${everyHours.value} hours`
   const t = `${pad(hh.value)}:${pad(mm.value)}`
-  if (mode.value === 'daily')   return `ทุกวัน เวลา ${t}`
-  if (mode.value === 'weekly')  return `ทุกวัน${dayNames[dow.value]} เวลา ${t}`
-  if (mode.value === 'monthly') return `ทุกวันที่ ${dom.value} เวลา ${t}`
+  if (mode.value === 'daily')   return `Every day at ${t}`
+  if (mode.value === 'weekly')  return `Every ${dayNames[dow.value]} at ${t}`
+  if (mode.value === 'monthly') return `Day ${dom.value} of every month at ${t}`
   return t
 })
 
-// Push cron up to parent
 watch(cron, (v) => emit('update:modelValue', v), { immediate: true })
 
-// Parse incoming cron to set UI state
 function parseCron(c: string) {
   if (!c) return
   const parts = c.split(' ')
@@ -173,7 +171,6 @@ function parseCron(c: string) {
 
 function setMode(m: Mode) { mode.value = m }
 
-// Init from prop
 parseCron(props.modelValue)
 watch(() => props.modelValue, (v) => { if (v !== cron.value) parseCron(v) })
 </script>

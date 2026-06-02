@@ -81,7 +81,7 @@
       <div class="flex items-center justify-between mb-4">
         <div>
           <h2 class="font-semibold text-gray-200">THB / USDT Rate</h2>
-          <p v-if="currentRate" class="text-amber-400 text-sm mt-0.5">ปัจจุบัน: {{ currentRate.toFixed(2) }} THB</p>
+          <p v-if="currentRate" class="text-amber-400 text-sm mt-0.5">Current: {{ currentRate.toFixed(2) }} THB</p>
         </div>
         <select v-model="rateDays" class="bg-gray-800 border border-gray-700 text-gray-200 rounded px-2 py-1 text-sm">
           <option :value="7">7 days</option>
